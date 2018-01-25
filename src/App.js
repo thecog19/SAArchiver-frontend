@@ -12,6 +12,7 @@ import {Toolbar, ToolbarGroup, ToolbarSeparator, ToolbarTitle} from 'material-ui
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import FlatButton from 'material-ui/FlatButton';
 import AutoComplete from 'material-ui/AutoComplete';
+import Avatar from 'material-ui/Avatar';
 
 
 
@@ -161,6 +162,8 @@ class Post extends React.Component{
         <CardHeader
           title={this.props.poster}
           subtitle={this.props.subtitle}
+          //use a <Avatar> </Avatar> here
+          avatar={<Avatar src={this.props.avatar} style={{ borderRadius: 0 }}></Avatar>}
           actAsExpander={true}
           showExpandableButton={true}
         />
@@ -189,11 +192,11 @@ class PostArray extends React.Component{
   }
 
   mapPosts(posts){
+
     return (this.state.posts.map((post)=>{
      const user = this.state.users[post.user_id] || {name: undefined, image: undefined, post: undefined}
-     
      return (<div key={post.id}>
-     <Post poster={user["name"]}  subtitle={user["quote"]} text={post.body} url={post.url}/>
+     <Post poster={user["name"]}  avatar={user["image"]} subtitle={user["quote"]} text={post.body} url={post.url}/>
      <br/>
      </div>)}))
   }
@@ -204,9 +207,10 @@ class PostArray extends React.Component{
   }
 
   componentDidMount() {
-    const instance = axios.create({baseURL: 'http://10.0.0.194:3000'})
+    // const instance = axios.create({baseURL: 'http://10.0.0.194:3000'})
+    const instance = axios.create({baseURL: 'http://localhost:3001'})
 
-    instance.get("/posts/bythread/3550307=").then((res)=>{
+    instance.get("/posts").then((res)=>{
       const posts = res.data
       this.setState({ posts });
       return posts
@@ -217,9 +221,9 @@ class PostArray extends React.Component{
         var p = instance.get("/users/internal_id/" + post.user_id).then((res)=>{
           const result = res.data[0] 
           if(result.image){
-              result.image = result.image.split(" ")[1].split("=")[1]
-              console.log(result.image)
+              result.image = result.image.split(" ")[1].split("=")[1].replace(/"/g,"").replace(/>/g,"")
            }
+          console.log(result.image)
           users[result.id] = result
         })
         promiseArr.push(p)
