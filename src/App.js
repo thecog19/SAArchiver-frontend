@@ -13,7 +13,11 @@ import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import FlatButton from 'material-ui/FlatButton';
 import AutoComplete from 'material-ui/AutoComplete';
 import Avatar from 'material-ui/Avatar';
-
+import RightArrow from 'material-ui-icons/KeyboardArrowRight';
+import LeftArrow from 'material-ui-icons/KeyboardArrowLeft';
+import FirstPage from 'material-ui-icons/FirstPage';
+import LastPage from 'material-ui-icons/LastPage';
+import {BottomNavigation, BottomNavigationItem} from 'material-ui/BottomNavigation';
 
 
 class Navigation extends React.Component {
@@ -25,6 +29,110 @@ class Navigation extends React.Component {
       },
     };
     return(<AppBar showMenuIconButton={false} title={<span style={styles.title}>Something Awful CYOA Archiver</span>} />)
+  }
+}
+
+class Pagination extends React.Component{
+  constructor(props){
+    super(props)
+    const elementArr = []
+    for(var i = 1; i <= this.props.total; i++){
+      elementArr.push(<MenuItem value={i} key={i} primaryText={`${i}`} />)
+    }
+    this.state = {dropdown: elementArr}
+  }
+
+  componentWillReceiveProps(nextProps){
+    const elementArr = []
+    var max = parseInt(nextProps.page) + 100
+    var min = 1
+    if(nextProps.page > 101){
+      min = nextProps.page - 100
+    }
+
+    if(max >= nextProps.total){
+      max = nextProps.total
+    }
+
+    for(var i = min; i <= nextProps.page; i++){
+      elementArr.push(<MenuItem value={i} key={i} primaryText={`${i}`} />)
+    }
+    for(var i = nextProps.page + 1; i <= max; i++){
+      elementArr.push(<MenuItem value={i} key={i} primaryText={`${i}`} />)
+    }
+
+    this.setState({dropdown: elementArr})
+  }
+
+  populateAutocomplete(){
+      const dataSourceConfigThread = {
+      text: 'text',
+      value: 'value',
+    };
+    return (<DropDownMenu maxHeight={300} value={this.props.page} onChange={this.changePage.bind(this)}>
+        {this.state.dropdown}
+      </DropDownMenu>)
+    
+  }
+  
+  changePage(event, index, value){
+    this.props.changePage(value)
+  }
+
+  firstPage(){
+    this.props.changePage(1)
+  }
+
+  previousPage(){
+    this.props.changePage(this.props.page - 1)
+  }
+
+  nextPage(){
+    this.props.changePage(this.props.page + 1)
+  }
+
+  lastPage(){
+    console.log(this.props.last)
+    this.props.changePage(this.props.total)
+  }
+
+
+  render(){
+    return(
+     <Toolbar>
+        <ToolbarGroup firstChild={true}>
+          <RaisedButton
+            onClick={this.firstPage.bind(this)}
+            icon={<FirstPage />}
+            disabled={this.props.page == 1}
+          />
+        </ToolbarGroup>
+        <ToolbarGroup>
+          <RaisedButton
+            onClick={this.previousPage.bind(this)}
+            icon={<LeftArrow />}
+            disabled={this.props.page == 1}
+          />
+        </ToolbarGroup>
+        <ToolbarGroup>
+          {this.populateAutocomplete()}
+        </ToolbarGroup>
+        <ToolbarGroup>
+          <RaisedButton
+            onClick={this.nextPage.bind(this)}
+            icon={<RightArrow />}
+            disabled={this.props.page == this.props.total}
+          />
+        </ToolbarGroup>
+        <ToolbarGroup lastChild={true}>
+          <RaisedButton
+            onClick={this.lastPage.bind(this)}
+            icon={<LastPage />}
+            disabled={this.props.page == this.props.total}
+
+          />
+        </ToolbarGroup>
+    </Toolbar>)
   }
 }
 
@@ -48,18 +156,44 @@ class App extends React.Component {
   }
 }
 
-const AppContents = () => {
-   return (
-    <Card>
-      <CardText>
-        <Navigation/>
-        <br/>  
-        <Search/>
-        <br/>  
-        <PostArray/>
-      </CardText>
-    </Card>
+class AppContents extends React.Component {
+  constructor(props){
+    super(props)
+    this.state = {page: 1, total: 30}
+  }
+
+  setPageStatus(page){
+    this.setState({page: page.page, total: page.total});
+  }
+
+  changePage(page){
+    this.setState({nextPage: page})
+  }
+
+  clearNextPage(){
+    this.setState({nextPage: false})
+  }
+
+   render(){ 
+
+     return (
+      <Card>
+        <CardText>
+          <Navigation/>
+          <br/>  
+          <Search/>
+          <br/>  
+          <Pagination page={parseInt(this.state.page)} total={this.state.total} changePage={this.changePage.bind(this)}/>
+          <br/>
+          <PostArray setPageStatus={this.setPageStatus.bind(this)} 
+                     nextPage={this.state.nextPage} 
+                     clearNextPage={this.clearNextPage.bind(this)}/>
+          <br/>
+          <Pagination page={parseInt(this.state.page)} total={this.state.total} changePage={this.changePage.bind(this)}/>
+        </CardText>
+      </Card>
     )
+   }
 }
 
 
@@ -162,10 +296,10 @@ class Post extends React.Component{
         <CardHeader
           title={this.props.poster}
           subtitle={this.props.subtitle}
-          //use a <Avatar> </Avatar> here
-          avatar={<Avatar src={this.props.avatar} style={{ borderRadius: 0 }}></Avatar>}
+          avatar={<Avatar src={this.props.avatar} style={{ borderRadius: 0 }} size={70}></Avatar>}
           actAsExpander={true}
           showExpandableButton={true}
+          style={{borderBottom: "1px solid"}}
         />
         <CardActions expandable={true}>
           <FlatButton label="To Post" onClick={this.goToPost.bind(this)}/>
@@ -188,7 +322,16 @@ class PostArray extends React.Component{
     this.state = {
       posts: [{id: "1", body: "this is some text, there are many like it, but this one is the best objectively. Proven by a committie", user_id: "1", url: "https://forums.somethingawful.com/showthread.php?threadid=3550307&userid=0&perpage=40&pagenumber=4744"}],
       users: {"1": {name: "TheCog", quote: "The best things in life suck"}},
+      page: 1
     };
+  }
+
+  componentWillReceiveProps(nextProps){
+    if(nextProps.nextPage){
+      const nextPage = nextProps.nextPage
+      this.props.clearNextPage()
+      this.goToPage(nextPage, "/posts")
+    }
   }
 
   mapPosts(posts){
@@ -206,13 +349,15 @@ class PostArray extends React.Component{
     );
   }
 
-  componentDidMount() {
-    // const instance = axios.create({baseURL: 'http://10.0.0.194:3000'})
+  goToPage(page, url){
     const instance = axios.create({baseURL: 'http://localhost:3001'})
 
-    instance.get("/posts").then((res)=>{
-      const posts = res.data
+    instance.get(url + "?page=" + page).then((res)=>{
+      console.log(res.request)
+      const posts = res.data["posts"]
+      const pages = res.data["meta"]
       this.setState({ posts });
+      this.props.setPageStatus(pages)
       return posts
     }).then((posts) => {
       const users = {}
@@ -223,7 +368,6 @@ class PostArray extends React.Component{
           if(result.image){
               result.image = result.image.split(" ")[1].split("=")[1].replace(/"/g,"").replace(/>/g,"")
            }
-          console.log(result.image)
           users[result.id] = result
         })
         promiseArr.push(p)
@@ -233,6 +377,12 @@ class PostArray extends React.Component{
         
       })
     })
+
+  }
+
+  componentDidMount() {
+    // const instance = axios.create({baseURL: 'http://10.0.0.194:3000'})
+    this.goToPage(1, "/posts")
   }
 }
 
