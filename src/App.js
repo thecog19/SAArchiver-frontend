@@ -18,7 +18,8 @@ import LeftArrow from 'material-ui-icons/KeyboardArrowLeft';
 import FirstPage from 'material-ui-icons/FirstPage';
 import LastPage from 'material-ui-icons/LastPage';
 import {BottomNavigation, BottomNavigationItem} from 'material-ui/BottomNavigation';
-
+import CircularProgress from 'material-ui/CircularProgress';
+//TODO: loading bar
 
 class Navigation extends React.Component {
 
@@ -28,7 +29,7 @@ class Navigation extends React.Component {
         cursor: 'default',
       },
     };
-    return(<AppBar showMenuIconButton={false} title={<span style={styles.title}>Something Awful CYOA Archiver</span>} />)
+    return(<AppBar showMenuIconButton={false} title={<span style={styles.title}>Something Awful CYOA Archiver {this.props.title}</span>} />)
   }
 }
 
@@ -39,10 +40,12 @@ class Pagination extends React.Component{
     for(var i = 1; i <= this.props.total; i++){
       elementArr.push(<MenuItem value={i} key={i} primaryText={`${i}`} />)
     }
-    this.state = {dropdown: elementArr}
+    this.state = {dropdown: elementArr, loading: true}
   }
 
   componentWillReceiveProps(nextProps){
+    this.state.loading = nextProps.loading
+
     const elementArr = []
     var max = parseInt(nextProps.page) + 100
     var min = 1
@@ -92,7 +95,6 @@ class Pagination extends React.Component{
   }
 
   lastPage(){
-    console.log(this.props.last)
     this.props.changePage(this.props.total)
   }
 
@@ -104,14 +106,14 @@ class Pagination extends React.Component{
           <RaisedButton
             onClick={this.firstPage.bind(this)}
             icon={<FirstPage />}
-            disabled={this.props.page == 1}
+            disabled={this.props.page == 1 || this.props.loading}
           />
         </ToolbarGroup>
         <ToolbarGroup>
           <RaisedButton
             onClick={this.previousPage.bind(this)}
             icon={<LeftArrow />}
-            disabled={this.props.page == 1}
+            disabled={this.props.page == 1 || this.props.loading}
           />
         </ToolbarGroup>
         <ToolbarGroup>
@@ -121,14 +123,14 @@ class Pagination extends React.Component{
           <RaisedButton
             onClick={this.nextPage.bind(this)}
             icon={<RightArrow />}
-            disabled={this.props.page == this.props.total}
+            disabled={this.props.page == this.props.total || this.props.loading}
           />
         </ToolbarGroup>
         <ToolbarGroup lastChild={true}>
           <RaisedButton
             onClick={this.lastPage.bind(this)}
             icon={<LastPage />}
-            disabled={this.props.page == this.props.total}
+            disabled={this.props.page == this.props.total || this.props.loading} 
 
           />
         </ToolbarGroup>
@@ -159,7 +161,7 @@ class App extends React.Component {
 class AppContents extends React.Component {
   constructor(props){
     super(props)
-    this.state = {page: 1, total: 30}
+    this.state = {page: 1, total: 30, url: "/posts", loading: true}
   }
 
   setPageStatus(page){
@@ -174,22 +176,43 @@ class AppContents extends React.Component {
     this.setState({nextPage: false})
   }
 
+  setSearch(url, threadTitle, userName){
+    this.setState({url: url, title: " : " + threadTitle + " : " + userName , nextPage: 1 })
+  }
+
+  setLoading(loading){
+    this.setState({loading: loading})
+  }
+
    render(){ 
 
      return (
       <Card>
         <CardText>
-          <Navigation/>
+          <Navigation subtitle={this.state.title}/>
           <br/>  
-          <Search/>
-          <br/>  
-          <Pagination page={parseInt(this.state.page)} total={this.state.total} changePage={this.changePage.bind(this)}/>
+          <Search setSearch={this.setSearch.bind(this)} loading={this.state.loading}/>
+          <br/>
+
+          <br/>
+          <Pagination page={parseInt(this.state.page)} 
+                      total={this.state.total} 
+                      changePage={this.changePage.bind(this)}
+                      loading={this.state.loading} 
+                      />
           <br/>
           <PostArray setPageStatus={this.setPageStatus.bind(this)} 
                      nextPage={this.state.nextPage} 
-                     clearNextPage={this.clearNextPage.bind(this)}/>
+                     clearNextPage={this.clearNextPage.bind(this)}
+                     url={this.state.url}
+                     setLoading={this.setLoading.bind(this)}
+                     />
           <br/>
-          <Pagination page={parseInt(this.state.page)} total={this.state.total} changePage={this.changePage.bind(this)}/>
+          <Pagination page={parseInt(this.state.page)} 
+                      total={this.state.total} 
+                      changePage={this.changePage.bind(this)}
+                      loading={this.state.loading}
+                      />
         </CardText>
       </Card>
     )
@@ -205,11 +228,34 @@ class Search extends React.Component{
       value: 'id',
     };
     this.dataSourceConfigUser = {
-      text: 'title',
+      text: 'name',
       value: 'id',
     };
 
-    this.state = {value: "all", thread: 1, user: 1, threadList: [{id: 1, title: "this is a thread"}], userList: [{id: 4, name: "Diogenes"}]};
+    this.state = {loading: true,value: "all", threadList: [{id: 1, title: "this is a thread"}], userList: [{id: 4, name: "Diogenes"}]};
+    this.loadUsers()
+    this.loadThreads()
+  }
+
+  componentWillReceiveProps(nextProps){
+    this.state.loading = nextProps.loading
+  }
+
+  loadUsers(){
+    const instance = axios.create({baseURL: 'http://localhost:3001'})
+    instance.get("/all_users").then((res)=>{
+      var users = res.data
+      this.setState({ userList: users });
+      // console.log(this.state.userList)
+    })
+  }
+
+  loadThreads(){
+    const instance = axios.create({baseURL: 'http://localhost:3001'})
+    instance.get("/all_threads").then((res)=>{
+      var threads = res.data
+      this.setState({ threadList: threads });
+    })
   }
 
   handleDropdownChange = (name,event, index, value) => {
@@ -245,8 +291,9 @@ class Search extends React.Component{
       openOnFocus={true}
       dataSource={this.state.userList}
       dataSourceConfig={this.dataSourceConfigUser}
-      onNewRequest= {this.handleAutocompleteChange.bind(this, "thread")}
+      onNewRequest= {this.handleAutocompleteChange.bind(this, "user")}
     />)
+
 
     if(this.state.value == "all"){
       return <div> </div>
@@ -259,6 +306,75 @@ class Search extends React.Component{
     }
   }
 
+  search(type){
+    var url 
+
+    if(this.state.searchText){
+      //search cases
+      if(this.state.thread && this.state.user){
+        //search user inside thread
+        if(type == "fuzzy"){
+          url = "/thread/" + this.state.thread + "/user/" + this.state.user + "/fuzzy/" + this.state.searchText
+        }else{
+          url = "/thread/" + this.state.thread + "/user/" + this.state.user + "/strict/" + this.state.searchText
+        }
+      }else if(this.state.thread){
+        //search inside a thread
+        if(type == "fuzzy"){
+          url = "/posts/thread/" + this.state.thread.thread_id + "/fuzzysearch/"+ this.state.searchText
+
+        }else{
+          url = "/posts/thread/" + this.state.thread.thread_id + "/strictsearch/"+ this.state.searchText
+
+        }
+      }else if(this.state.user){
+        //search user posts
+        if(type == "fuzzy"){
+          url = "/posts/user/" + this.state.user.user_id + "/fuzzy/" + this.state.searchText
+        }else{
+          url = "/posts/user/" + this.state.user.user_id + "/strict/" + this.state.searchText
+        }
+      }else{ 
+        //search all posts
+        if(type == "fuzzy"){
+          url = '/posts/search/fuzzy/' + this.state.searchText
+        }else{
+          url = '/posts/search/strict/' + this.state.searchText
+        }
+      }
+    }else{
+      //whole cases
+      if(this.state.thread && this.state.user){
+        //user inside thread
+        url =  '/thread/' + this.state.thread.thread_id + '/user/' + this.state.user.user_id
+      }else if(this.state.thread){
+        //whole thread
+        url = "/posts/bythread/" + this.state.thread.thread_id
+      }else if(this.state.user){
+        //whole user
+        url = "/posts/byuser/" + this.state.user.user_id
+      }else{ 
+        //all posts (Default)
+        url = "/posts"
+      }
+    }
+    var title = ""
+    var name = ""
+    if(this.state.thread){
+      title = this.state.thread.title
+    }
+    if(this.state.user){
+      name = this.state.user.name
+    }
+    this.props.setSearch(url, title, name)
+    this.setState({thread: undefined})
+    this.setState({user: undefined})
+  }
+
+  searchText(event, value){
+    this.setState({searchText: value})
+  }
+
   render(){
     const style = {
       margin: 12,
@@ -267,7 +383,7 @@ class Search extends React.Component{
     return(
       <Toolbar >
         <ToolbarGroup firstChild={true}>
-          <TextField hintText="Search Posts" style={style}/>
+          <TextField hintText="Search Posts" style={style} onChange={this.searchText.bind(this)}/>
           <DropDownMenu value={this.state.value} onChange={this.handleDropdownChange.bind(this, "value")}>
             <MenuItem value={"all"} primaryText="All Posts" />
             <MenuItem value={"user"} primaryText="By User" />
@@ -277,7 +393,18 @@ class Search extends React.Component{
         </ToolbarGroup>
         {this.secondDropDown()}
         <ToolbarGroup lastChild={true}>
-          <RaisedButton label="Search" primary={true} style={style} />
+          <RaisedButton label="Fuzzy Search" 
+                        primary={true} 
+                        style={style} 
+                        onClick={this.search.bind(this, "fuzzy")}
+                        disabled={this.props.loading}
+                        />
+          <RaisedButton label="Strict Search" 
+                        primary={true} 
+                        style={style} 
+                        onClick={this.search.bind(this, "strict")} 
+                        disabled={this.props.loading}
+                        />
         </ToolbarGroup>
       </Toolbar>
     )
@@ -322,15 +449,20 @@ class PostArray extends React.Component{
     this.state = {
       posts: [{id: "1", body: "this is some text, there are many like it, but this one is the best objectively. Proven by a committie", user_id: "1", url: "https://forums.somethingawful.com/showthread.php?threadid=3550307&userid=0&perpage=40&pagenumber=4744"}],
       users: {"1": {name: "TheCog", quote: "The best things in life suck"}},
-      page: 1
+      page: 1,
+      url: "/posts",
+      loading: true 
     };
   }
 
   componentWillReceiveProps(nextProps){
+    if(nextProps.loading){
+      this.setState({loading: nextProps.loading})
+    }
     if(nextProps.nextPage){
       const nextPage = nextProps.nextPage
       this.props.clearNextPage()
-      this.goToPage(nextPage, "/posts")
+      this.goToPage(nextPage, nextProps.url)
     }
   }
 
@@ -345,15 +477,21 @@ class PostArray extends React.Component{
   }
 
   render(){
-    return (<div> {this.mapPosts(this.state.posts, this.state.users)} </div>
-    );
+    if(this.state.loading){
+      return (<div className="center">
+              <CircularProgress size={80} thickness={5} />
+            </div>)
+    }else{
+      return (<div> {this.mapPosts(this.state.posts, this.state.users)} </div>
+      );
+    }
   }
 
   goToPage(page, url){
     const instance = axios.create({baseURL: 'http://localhost:3001'})
-
+    this.setState({loading: true})
+    this.props.setLoading(true)
     instance.get(url + "?page=" + page).then((res)=>{
-      console.log(res.request)
       const posts = res.data["posts"]
       const pages = res.data["meta"]
       this.setState({ posts });
@@ -374,8 +512,15 @@ class PostArray extends React.Component{
       }
       Promise.all(promiseArr).then(()=>{        
         this.setState({ users });
+        this.setState({loading: false})
+        this.props.setLoading(false)
+
         
       })
+    }).catch((err)=>{
+       console.log(err)
+       this.setState({loading:false})
+       this.props.setLoading(false)
     })
 
   }
