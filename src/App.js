@@ -19,9 +19,21 @@ import FirstPage from 'material-ui-icons/FirstPage';
 import LastPage from 'material-ui-icons/LastPage';
 import {BottomNavigation, BottomNavigationItem} from 'material-ui/BottomNavigation';
 import CircularProgress from 'material-ui/CircularProgress';
+import Dialog from 'material-ui/Dialog';
 //TODO: loading bar
 
 class Navigation extends React.Component {
+  constructor(props){
+    super(props)
+    this.state = {open: false}
+  }
+  about(){
+    this.setState({open:true})
+  }
+
+  handleClose(){
+    this.setState({open: false})
+  }
 
   render() {
     const styles = {
@@ -29,7 +41,39 @@ class Navigation extends React.Component {
         cursor: 'default',
       },
     };
-    return(<AppBar showMenuIconButton={false} title={<span style={styles.title}>Something Awful CYOA Archiver {this.props.title}</span>} />)
+
+     const actions = [
+      <FlatButton
+        label="Exit"
+        primary={true}
+        onClick={this.handleClose.bind(this)}
+      />
+    ];
+    return(
+      <div>
+      <AppBar iconElementRight={<FlatButton label="About"  onClick={this.about.bind(this)}/>} showMenuIconButton={false} title={<span style={styles.title}>Something Awful CYOA Archiver</span>} />
+      <Dialog
+          title="About SAArchiver"
+          actions={actions}
+          modal={false}
+          open={this.state.open}
+          onRequestClose={this.handleClose.bind(this)}
+        >
+          This is a project to archive select Choose Your Own Adventure threads on <a href="https://forums.somethingawful.com"> something awful</a>.
+          <br/>
+          This project is open source, and the repositories for it can be found on github
+
+          <a href="https://github.com/thecog19/SAArchiver-frontend"> Frontend</a>,
+          <a href="https://github.com/thecog19/SAArchiver"> Backend</a>
+          <br/>
+          <br/>
+          Feedback, including archive requests can be sent to SArchiver@gmail.com 
+          <br/>
+          <br/>
+          Only threads categorized as CYOA which exceed 100 pages in length or for which a legitimate argument of notability can be made will be archived. 
+        </Dialog>      
+
+      </div>)
   }
 }
 
@@ -276,6 +320,7 @@ class Search extends React.Component{
   secondDropDown(){
     const threadDropdown = (<AutoComplete 
       hintText="Thread"
+      disabled={this.props.loading}
       filter={AutoComplete.caseInsensitiveFilter}
       maxSearchResults={10}
       openOnFocus={true}
@@ -286,6 +331,7 @@ class Search extends React.Component{
 
     const userDropdown = (<AutoComplete 
       hintText="User"
+      disabled={this.props.loading}
       filter={AutoComplete.caseInsensitiveFilter}
       maxSearchResults={10}
       openOnFocus={true}
@@ -314,9 +360,9 @@ class Search extends React.Component{
       if(this.state.thread && this.state.user){
         //search user inside thread
         if(type == "fuzzy"){
-          url = "/thread/" + this.state.thread + "/user/" + this.state.user + "/fuzzy/" + this.state.searchText
+          url = "/thread/" + this.state.thread.thread_id + "/user/" + this.state.user.user_id + "/fuzzy/" + this.state.searchText
         }else{
-          url = "/thread/" + this.state.thread + "/user/" + this.state.user + "/strict/" + this.state.searchText
+          url = "/thread/" + this.state.thread.thread_id + "/user/" + this.state.user.user_id + "/strict/" + this.state.searchText
         }
       }else if(this.state.thread){
         //search inside a thread
@@ -383,8 +429,8 @@ class Search extends React.Component{
     return(
       <Toolbar >
         <ToolbarGroup firstChild={true}>
-          <TextField hintText="Search Posts" style={style} onChange={this.searchText.bind(this)}/>
-          <DropDownMenu value={this.state.value} onChange={this.handleDropdownChange.bind(this, "value")}>
+          <TextField  disabled={this.props.loading} hintText="Search Posts" style={style} onChange={this.searchText.bind(this)}/>
+          <DropDownMenu disabled={this.props.loading} value={this.state.value} onChange={this.handleDropdownChange.bind(this, "value")}>
             <MenuItem value={"all"} primaryText="All Posts" />
             <MenuItem value={"user"} primaryText="By User" />
             <MenuItem value={"thread"} primaryText="By Thread" />
@@ -414,7 +460,8 @@ class Search extends React.Component{
 class Post extends React.Component{
 
   goToPost(){
-    window.open(this.props.url, "_blank")
+    //#post480764289
+    window.open(this.props.url + "#post" + this.props.id, "_blank")
   }
 
   render(){
@@ -430,7 +477,6 @@ class Post extends React.Component{
         />
         <CardActions expandable={true}>
           <FlatButton label="To Post" onClick={this.goToPost.bind(this)}/>
-          <FlatButton label="Posts By User" />
         </CardActions>
         <CardText dangerouslySetInnerHTML={{ __html: this.props.text }} >
         </CardText>
@@ -447,7 +493,7 @@ class PostArray extends React.Component{
     super(props);
 
     this.state = {
-      posts: [{id: "1", body: "this is some text, there are many like it, but this one is the best objectively. Proven by a committie", user_id: "1", url: "https://forums.somethingawful.com/showthread.php?threadid=3550307&userid=0&perpage=40&pagenumber=4744"}],
+      posts: [{id: "1", body: "this is some text, there are many like it, but this one is the best objectively. Proven by a committie", user_id: "1", url: "https://forums.somethingawful.com/showthread.php?threadid=3550307&userid=0&perpage=40&pagenumber=4744", post_id:"1"}],
       users: {"1": {name: "TheCog", quote: "The best things in life suck"}},
       page: 1,
       url: "/posts",
@@ -471,7 +517,7 @@ class PostArray extends React.Component{
     return (this.state.posts.map((post)=>{
      const user = this.state.users[post.user_id] || {name: undefined, image: undefined, post: undefined}
      return (<div key={post.id}>
-     <Post poster={user["name"]}  avatar={user["image"]} subtitle={user["quote"]} text={post.body} url={post.url}/>
+     <Post poster={user["name"]}  avatar={user["image"]} subtitle={user["quote"]} text={post.body} url={post.url} id={post.post_id}/>
      <br/>
      </div>)}))
   }
@@ -519,6 +565,8 @@ class PostArray extends React.Component{
       })
     }).catch((err)=>{
        console.log(err)
+       this.setState({users: {1: {name: "ERROR", image: "http://www.iconsplace.com/icons/preview/red/error-256.png" , quote: err.message}}})
+       this.setState({ posts: [{id: 1, user_id:1, body: "ERROR OCCURED: " + err}] })
        this.setState({loading:false})
        this.props.setLoading(false)
     })
