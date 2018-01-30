@@ -576,6 +576,7 @@ class PostArray extends React.Component{
   componentDidMount() {
     // const instance = axios.create({baseURL: 'http://10.0.0.194:3000'})
     this.goToPage(1, "/posts")
+    document.title = "CYOA Archiver";
   }
 }
 
