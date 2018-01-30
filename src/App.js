@@ -413,8 +413,6 @@ class Search extends React.Component{
       name = this.state.user.name
     }
     this.props.setSearch(url, title, name)
-    this.setState({thread: undefined})
-    this.setState({user: undefined})
   }
 
   searchText(event, value){
@@ -559,10 +557,14 @@ class PostArray extends React.Component{
       Promise.all(promiseArr).then(()=>{        
         this.setState({ users });
         this.setState({loading: false})
-        this.props.setLoading(false)
-
-        
+        this.props.setLoading(false)  
       })
+
+      if(this.state.posts.length == 0){
+         this.setState({users: {1: {name: "No Posts Found", image: "https://image.flaticon.com/icons/png/512/36/36601.png" , quote: "Empty Result"}}})
+         this.setState({ posts: [{id: 1, user_id:1, body: "No Posts Found: "}] })
+         
+      }
     }).catch((err)=>{
        console.log(err)
        this.setState({users: {1: {name: "ERROR", image: "http://www.iconsplace.com/icons/preview/red/error-256.png" , quote: err.message}}})
