@@ -354,8 +354,13 @@ class Search extends React.Component{
 
   search(type){
     var url 
+    var search = this.state.searchText
+    if(type == "none"){
+      search = ""
+    }
 
-    if(this.state.searchText){
+
+    if(search){
       //search cases
       if(this.state.thread && this.state.user){
         //search user inside thread
@@ -412,6 +417,12 @@ class Search extends React.Component{
     if(this.state.user){
       name = this.state.user.name
     }
+
+    if(type == "none"){
+     this.setState({oldName: name, oldTitle: title, oldSearch: "", oldSearchType: undefined})
+    }else{
+      this.setState({oldName: name, oldTitle: title, oldSearch: this.state.searchText, oldSearchType: type})
+    }
     this.props.setSearch(url, title, name)
   }
 
@@ -424,18 +435,72 @@ class Search extends React.Component{
       margin: 12,
     };
 
+    var displayVal = ""
+    var searchVal = ""
+    if(this.state.oldTitle){
+      displayVal += (this.state.thread.title + "   ")
+    }
+    if(this.state.oldName){
+       if(displayVal != ""){
+        displayVal += " | "
+       }
+       displayVal += (this.state.user.name + "   ")
+    }
+    if(displayVal == ""){
+      displayVal = "All Posts"
+    }
+
+    if(this.state.oldSearch){
+      searchVal = this.state.oldSearchType + " search for " + this.state.oldSearch
+    }
+
     return(
+      <div>
+      <Toolbar>
+        <ToolbarGroup firstChild={true} >
+          <AutoComplete 
+            style={style}
+            hintText="Thread"
+            disabled={this.props.loading}
+            filter={AutoComplete.caseInsensitiveFilter}
+            maxSearchResults={10}
+            openOnFocus={true}
+            dataSource={this.state.threadList}
+            dataSourceConfig={this.dataSourceConfigThread}
+            onNewRequest= {this.handleAutocompleteChange.bind(this, "thread")}
+          />
+          <ToolbarSeparator style={{backgroundColor:"none"}}/>
+          <AutoComplete 
+            hintText="User"
+            disabled={this.props.loading}
+            filter={AutoComplete.caseInsensitiveFilter}
+            maxSearchResults={10}
+            openOnFocus={true}
+            dataSource={this.state.userList}
+            dataSourceConfig={this.dataSourceConfigUser}
+            onNewRequest= {this.handleAutocompleteChange.bind(this, "user")}
+          />
+        </ToolbarGroup>
+        
+        <ToolbarGroup lastChild={true}>
+          <RaisedButton label="Go to!" 
+                        primary={true} 
+                        style={style} 
+                        onClick={this.search.bind(this, "none")} 
+                        disabled={this.props.loading}
+                        />
+        </ToolbarGroup>
+
+      </Toolbar>
+
       <Toolbar >
         <ToolbarGroup firstChild={true}>
-          <TextField  disabled={this.props.loading} hintText="Search Posts" style={style} onChange={this.searchText.bind(this)}/>
-          <DropDownMenu disabled={this.props.loading} value={this.state.value} onChange={this.handleDropdownChange.bind(this, "value")}>
-            <MenuItem value={"all"} primaryText="All Posts" />
-            <MenuItem value={"user"} primaryText="By User" />
-            <MenuItem value={"thread"} primaryText="By Thread" />
-            <MenuItem value={"both"} primaryText="By Thread and User" />
-          </DropDownMenu>
+          <TextField  disabled={this.props.loading} hintText="Search Current Selection" style={style} onChange={this.searchText.bind(this)}/>
         </ToolbarGroup>
-        {this.secondDropDown()}
+        
+        
+
+
         <ToolbarGroup lastChild={true}>
           <RaisedButton label="Fuzzy Search" 
                         primary={true} 
@@ -450,7 +515,19 @@ class Search extends React.Component{
                         disabled={this.props.loading}
                         />
         </ToolbarGroup>
+
+         
       </Toolbar>
+
+      <Toolbar>
+        <ToolbarGroup firstChild={true}>
+           <ToolbarTitle style={style} text={"Displaying:  " + displayVal} />
+        </ToolbarGroup>
+        <ToolbarGroup lastChild={true}>
+           <ToolbarTitle text={searchVal} />
+        </ToolbarGroup>
+      </Toolbar>
+      </div>
     )
   }
 }
