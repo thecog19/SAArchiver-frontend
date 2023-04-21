@@ -588,7 +588,6 @@ class PostArray extends React.Component{
   }
 
   mapPosts(posts){
-    console.log(posts)
     return (this.state.posts.map((post)=>{
      const user = this.state.users[post.user_id] || {name: undefined, image: undefined, post: undefined}
      return (<div key={post.id}>
