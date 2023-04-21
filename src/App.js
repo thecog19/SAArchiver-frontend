@@ -607,7 +607,7 @@ class PostArray extends React.Component{
       return body
     }
     const thread_id = this.getThreadFromUrl(url)
-    return body.replace(/https?:\/\/(?:i\.)?imgur\.com\/(\w+)(?:\.\w+)?/g, `https://images.saarchiver.com/${thread_id}/$1.jpg`);
+    return body.replace(/https?:\/\/(?:i\.)?imgur\.com\/(\w+)(?:\.\w+)?/g, `http://images.saarchiver.com/${thread_id}/$1.jpg`);
   }
 
   render(){
