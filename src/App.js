@@ -588,13 +588,26 @@ class PostArray extends React.Component{
   }
 
   mapPosts(posts){
-
+    console.log(posts)
     return (this.state.posts.map((post)=>{
      const user = this.state.users[post.user_id] || {name: undefined, image: undefined, post: undefined}
      return (<div key={post.id}>
-     <Post poster={user["name"]}  avatar={user["image"]} subtitle={user["quote"]} text={post.body} url={post.url} id={post.post_id}/>
+     <Post poster={user["name"]}  avatar={user["image"]} subtitle={user["quote"]} text={this.imgurReplace(post.body, post.url)} url={post.url} id={post.post_id}/>
      <br/>
      </div>)}))
+  }
+
+  getThreadFromUrl(url){
+    const thread_id = url.match(/threadid=(\d+)/)[1]
+    return thread_id
+  }
+  // replaces all the imgur links in a post with links to the hosted version 
+  imgurReplace(body, url) {
+    if (url === undefined) {
+      return body
+    }
+    const thread_id = this.getThreadFromUrl(url)
+    return body.replace(/https?:\/\/(?:i\.)?imgur\.com\/(\w+)(?:\.\w+)?/g, `https://images.saarchiver.com/${thread_id}/$1.jpg`);
   }
 
   render(){
